@@ -1,2 +1,2 @@
-# mazegame
-Small maze game
+# amazegame
+A maze game
