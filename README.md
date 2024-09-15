@@ -1,0 +1,2 @@
+# mazegame
+Small maze game
