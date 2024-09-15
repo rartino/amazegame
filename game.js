@@ -48,7 +48,6 @@ class GameScene extends Phaser.Scene {
         this.exitPoint = null;
         this.moving = false;
         this.moveDirection = null;
-        this.retryCount = 0;
         this.mapData = null;
     }
 
@@ -61,7 +60,6 @@ class GameScene extends Phaser.Scene {
         this.map = data.mapData || null;
         this.startPoint = data.startPoint || null;
         this.exitPoint = data.exitPoint || null;
-        this.retryCount = 0;
 
         this.moving = false;
         this.moveDirection = null;
@@ -174,7 +172,7 @@ class GameScene extends Phaser.Scene {
     }
 
     generateDungeonWithRetries() {
-        let maxAttempts = 10;
+        let maxAttempts = 100;
         let seed = this.level * 1000;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
@@ -207,14 +205,14 @@ class GameScene extends Phaser.Scene {
         // Generate dungeon using BSP
         generateDungeon(this.map, random);
 
+        // Add pink walls without blocking the solution
+        addPinkWalls(this.map, random);
+
         // Place starting point and exit point
         if (!this.placeStartAndExit(random)) {
             // If placement fails, throw an error to trigger a retry
             throw new Error('Failed to place start and exit points');
         }
-
-        // Add pink walls without blocking the solution
-        addPinkWalls(this.map, random, this.startPoint, this.exitPoint);
 
         // Draw the map
         this.drawMap();
@@ -579,7 +577,8 @@ function carveVerticalTunnel(y1, y2, x, map) {
     }
 }
 
-function addPinkWalls(map, random, startPoint, exitPoint) {
+// Function to add pink walls only next to floor tiles
+function addPinkWalls(map, random) {
     let wallTiles = [];
     for (let y = 1; y < MAP_HEIGHT - 1; y++) {
         for (let x = 1; x < MAP_WIDTH - 1; x++) {
@@ -611,16 +610,7 @@ function addPinkWalls(map, random, startPoint, exitPoint) {
 
     for (let i = 0; i < numPinkWalls; i++) {
         let pos = wallTiles[i];
-        // Temporarily set the tile to pink wall
         map[pos.y][pos.x] = TILE_PINK_WALL;
-
-        // Check if the path from start to exit is still valid
-        let { visited } = findReachablePositions(map, startPoint.x, startPoint.y);
-        let exitKey = posKey(exitPoint.x, exitPoint.y);
-        if (!visited.has(exitKey)) {
-            // Path is blocked, revert to wall
-            map[pos.y][pos.x] = TILE_WALL;
-        }
     }
 }
 
@@ -660,6 +650,7 @@ function findReachablePositions(map, startX, startY) {
             let steps = 0;
 
             // Move in this direction until hitting an obstacle
+            let tile = null;
             while (true) {
                 let newX = x + dir.dx;
                 let newY = y + dir.dy;
@@ -667,7 +658,7 @@ function findReachablePositions(map, startX, startY) {
                 if (newX < 0 || newX >= MAP_WIDTH || newY < 0 || newY >= MAP_HEIGHT) {
                     break;
                 }
-                let tile = map[newY][newX];
+                tile = map[newY][newX];
                 if (tile == TILE_WALL || tile == TILE_STONE || tile == TILE_PINK_WALL) {
                     break;
                 }
@@ -675,6 +666,10 @@ function findReachablePositions(map, startX, startY) {
                 x = newX;
                 y = newY;
                 steps++;
+            }
+            
+            if (tile == TILE_PINK_WALL) {
+              break;
             }
 
             // If we have moved at least one step
