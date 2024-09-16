@@ -27,23 +27,39 @@ class BootScene extends Phaser.Scene {
     }
 
     create() {
-        // Display background image
-        this.add.image(this.scale.width / 2, this.scale.height / 2, 'background').setDisplaySize(this.scale.width, this.scale.height);
-
-        // Display title
-        this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, 'Amazegame', { fontSize: '48px', fill: '#ffffff' }).setOrigin(0.5);
-
-        // Display start message
-        this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Tap or Press SPACE to Play', { fontSize: '24px', fill: '#ffffff' }).setOrigin(0.5);
-
-        // Start the game on spacebar press or tap
-        this.input.keyboard.once('keydown-SPACE', () => {
-            this.scene.start('GameScene', { level: 1, lives: 3 });
-        });
-
-        this.input.once('pointerdown', () => {
-            this.scene.start('GameScene', { level: 1, lives: 3 });
-        });
+	// Get the dimensions of the background image
+	const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'background');
+	
+	// Calculate aspect ratios
+	const bgRatio = bg.width / bg.height;
+	const screenRatio = this.scale.width / this.scale.height;
+	
+	// Scale the image to fill the screen while maintaining aspect ratio
+	if (bgRatio > screenRatio) {
+	    // If the background is wider than the screen, fit the height and crop the width
+	    bg.setScale(this.scale.height / bg.height);
+	} else {
+	    // If the background is taller than the screen, fit the width and crop the height
+	    bg.setScale(this.scale.width / bg.width);
+	}
+	
+	// Center the background image
+	bg.setPosition(this.scale.width / 2, this.scale.height / 2);
+	
+	// Display title
+	this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, 'Amazegame', { fontSize: '48px', fill: '#ffffff' }).setOrigin(0.5);
+	
+	// Display start message
+	this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Tap or Press SPACE to Play', { fontSize: '24px', fill: '#ffffff' }).setOrigin(0.5);
+	
+	// Start the game on spacebar press or tap
+	this.input.keyboard.once('keydown-SPACE', () => {
+	   this.scene.start('GameScene', { level: 1, lives: 3 });
+	});
+	
+	this.input.once('pointerdown', () => {
+	    this.scene.start('GameScene', { level: 1, lives: 3 });
+	});
     }
 }
 
