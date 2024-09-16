@@ -1,8 +1,7 @@
 // Map parameters
 const PLAYER_SPEED = 1000; // pixels per second
-let MAP_WIDTH = 40;
-let MAP_HEIGHT = 40;
-let TILE_SIZE = 15;
+let MAP_WIDTH = 30;
+let MAP_HEIGHT = 30;
 
 // Tile types
 const TILE_WALL = 0;
@@ -921,12 +920,8 @@ const config = {
     },
 };
 
-
-const game = new Phaser.Game(config);
-
 // Adjust MAP_WIDTH, MAP_HEIGHT, and TILE_SIZE based on screen size
 const maxTiles = 40; // Maximum number of tiles in either dimension
-const tileScale = Math.min(window.innerWidth, window.innerHeight) / maxTiles;
-TILE_SIZE = tileScale;
-MAP_WIDTH = 40;
-MAP_HEIGHT = 40;
+let TILE_SIZE = Math.min(window.innerWidth, window.innerHeight) / Math.max(MAP_WIDTH, MAP_HEIGHT);
+
+const game = new Phaser.Game(config);
