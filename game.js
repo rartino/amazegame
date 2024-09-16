@@ -263,7 +263,7 @@ class GameScene extends Phaser.Scene {
 
         // Check if hit a lava
         if (tile == TILE_LAVA) {
-            handleDeath();
+            this.handleDeath();
         }
 	    
         // Check if reached exit point
