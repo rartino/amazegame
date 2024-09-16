@@ -5,6 +5,7 @@ const urlsToCache = [
     './manifest.json',
     './sw.js',
     './game.js',
+    './background.png',
     'https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js'
 ];
 
