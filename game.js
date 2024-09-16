@@ -1,7 +1,7 @@
 // Map parameters
 const PLAYER_SPEED = 1000; // pixels per second
-let MAP_WIDTH = 30;
-let MAP_HEIGHT = 30;
+let MAP_WIDTH = 35;
+let MAP_HEIGHT = 35;
 
 // Tile types
 const TILE_WALL = 0;
