@@ -1,4 +1,5 @@
 // Map parameters
+const PLAYER_SPEED = 1000; // pixels per second
 let MAP_WIDTH = 40;
 let MAP_HEIGHT = 40;
 let TILE_SIZE = 15;
@@ -9,6 +10,7 @@ const TILE_FLOOR = 1;
 const TILE_STONE = 2;
 const TILE_PINK_WALL = 3;
 const TILE_COIN = 4;
+const TILE_EXIT = 100;
 
 // Global variables
 let rooms = []; // Declare rooms as a global variable
@@ -100,7 +102,7 @@ class GameScene extends Phaser.Scene {
         this.addTouchControls();
     }
 
-    update() {
+    update(time, delta) {
         // Handle restart key
         if (Phaser.Input.Keyboard.JustDown(this.restartKey)) {
             this.handleDeath();
@@ -109,75 +111,116 @@ class GameScene extends Phaser.Scene {
 
         if (!this.moving) {
             if (Phaser.Input.Keyboard.JustDown(this.cursors.left) || this.swipeDirection === 'left') {
-                this.moveDirection = { dx: -1, dy: 0 };
-                this.moving = true;
+                this.setPlayerMovement(-1, 0);
             } else if (Phaser.Input.Keyboard.JustDown(this.cursors.right) || this.swipeDirection === 'right') {
-                this.moveDirection = { dx: 1, dy: 0 };
-                this.moving = true;
+                this.setPlayerMovement(1, 0);
             } else if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || this.swipeDirection === 'up') {
-                this.moveDirection = { dx: 0, dy: -1 };
-                this.moving = true;
+                this.setPlayerMovement(0, -1);
             } else if (Phaser.Input.Keyboard.JustDown(this.cursors.down) || this.swipeDirection === 'down') {
-                this.moveDirection = { dx: 0, dy: 1 };
-                this.moving = true;
+                this.setPlayerMovement(0, 1);
             }
 
             this.swipeDirection = null; // Reset swipe direction after use
         }
 
         if (this.moving) {
-            this.movePlayerContinuous();
+            this.movePlayer(delta);
         }
     }
 
-    movePlayerContinuous() {
-        let newX = this.player.tileX + this.moveDirection.dx;
-        let newY = this.player.tileY + this.moveDirection.dy;
+    setPlayerMovement(dx, dy) {
+        this.moveDirection = { dx: dx, dy: dy };
+        this.moving = true;
 
-        if (newX >= 0 && newX < MAP_WIDTH && newY >= 0 && newY < MAP_HEIGHT) {
-            let tile = this.map[newY][newX];
-            if (tile == TILE_FLOOR || tile == TILE_COIN) {
-                this.player.tileX = newX;
-                this.player.tileY = newY;
+        // Calculate offsets to center the maze
+        let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
+        let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
 
-                // Calculate offsets to center the maze
-                let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
-                let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
+        // Calculate the target position
+        this.player.startX = this.player.x;
+        this.player.startY = this.player.y;
 
-                this.player.setPosition(
-                    this.player.tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX,
-                    this.player.tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY
-                );
+        // Determine how far the player can move in the selected direction
+        let distance = 0;
+        let tileX = this.player.tileX;
+        let tileY = this.player.tileY;
 
-                // Check if collected a coin
-                if (tile == TILE_COIN) {
-                    this.lives++;
-                    this.livesText.setText('Lives: ' + this.lives);
-                    this.map[newY][newX] = TILE_FLOOR;
-                    this.coinSprite.destroy();
-                }
+        while (true) {
+            let nextTileX = tileX + dx;
+            let nextTileY = tileY + dy;
 
-                // Check if reached exit point
-                if (this.player.tileX == this.exitPoint.x && this.player.tileY == this.exitPoint.y) {
-                    this.level++;
-                    this.scene.restart({ level: this.level, lives: this.lives });
-                    return;
-                }
-            } else if (tile == TILE_PINK_WALL) {
-                // Hit a pink wall, die
-                this.moving = false;
-                this.handleDeath();
-                return;
-            } else {
-                // Hit an obstacle
-                this.moving = false;
+            if (nextTileX < 0 || nextTileX >= MAP_WIDTH || nextTileY < 0 || nextTileY >= MAP_HEIGHT) {
+                break;
             }
-        } else {
-            // Hit map boundary
+
+            let tile = this.map[nextTileY][nextTileX];
+            if (tile == TILE_WALL || tile == TILE_STONE || tile == TILE_PINK_WALL) {
+                break;
+            }
+
+            tileX = nextTileX;
+            tileY = nextTileY;
+            distance += TILE_SIZE;
+
+            if (tile == TILE_EXIT) {
+                break;
+            }            
+        }
+
+        this.player.targetX = tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX;
+        this.player.targetY = tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY;
+
+        this.player.tileX = tileX;
+        this.player.tileY = tileY;
+    }
+
+    movePlayer(delta) {
+        // Calculate the distance to move this frame
+        let distanceToMove = (PLAYER_SPEED * delta) / 1000; // delta is in ms
+
+        // Calculate the difference between target and current position
+        let dx = this.player.targetX - this.player.x;
+        let dy = this.player.targetY - this.player.y;
+        let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+
+        if (distanceToMove >= distanceToTarget) {
+            // Snap to target position
+            this.player.x = this.player.targetX;
+            this.player.y = this.player.targetY;
             this.moving = false;
+
+            // Check for interactions at the new position
+            this.checkPlayerPosition();
+        } else {
+            // Move towards the target
+            let angle = Math.atan2(dy, dx);
+            this.player.x += Math.cos(angle) * distanceToMove;
+            this.player.y += Math.sin(angle) * distanceToMove;
         }
     }
 
+    checkPlayerPosition() {
+        let tileX = this.player.tileX;
+        let tileY = this.player.tileY;
+        let tile = this.map[tileY][tileX];
+
+        // Check if collected a coin
+        if (tile == TILE_COIN) {
+            this.lives++;
+            this.livesText.setText('Lives: ' + this.lives);
+            this.map[tileY][tileX] = TILE_FLOOR;
+            this.coinSprite.destroy();
+        }
+
+        // Check if reached exit point
+        if (tileX == this.exitPoint.x && tileY == this.exitPoint.y) {
+            this.level++;
+            this.scene.restart({ level: this.level, lives: this.lives });
+            return;
+        }
+
+        // Check if hit a pink wall (should not happen here since movement stops before pink walls)
+    }
 
     handleDeath() {
         this.lives--;
@@ -205,12 +248,12 @@ class GameScene extends Phaser.Scene {
         this.player = this.add.rectangle(0, 0, TILE_SIZE, TILE_SIZE, 0x00ff00);
         this.player.tileX = this.startPoint.x;
         this.player.tileY = this.startPoint.y;
-        this.player.setPosition(
-            this.player.tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX,
-            this.player.tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY
-        );
+        this.player.startX = this.player.tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX;
+        this.player.startY = this.player.tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY;
+        this.player.targetX = this.player.startX;
+        this.player.targetY = this.player.startY;
+        this.player.setPosition(this.player.startX, this.player.startY);
     }
-
 
     generateDungeonWithRetries() {
         let maxAttempts = 100;
@@ -254,6 +297,7 @@ class GameScene extends Phaser.Scene {
             // If placement fails, throw an error to trigger a retry
             throw new Error('Failed to place start and exit points');
         }
+        this.map[this.exitPoint.y][this.exitPoint.x] = TILE_EXIT;
 
         // Place a gold coin occasionally
         if (random.between(1, 5) === 1) {
@@ -359,6 +403,8 @@ class GameScene extends Phaser.Scene {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x777777);
                 } else if (this.map[y][x] == TILE_PINK_WALL) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0xff69b4);
+                } else if (this.map[y][x] == TILE_EXIT) {
+                    this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0xff0000);
                 } else if (this.map[y][x] == TILE_COIN) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x999999);
                     this.coinSprite = this.add.circle(tileX, tileY, TILE_SIZE/2.0, 0xffff00);
@@ -368,9 +414,9 @@ class GameScene extends Phaser.Scene {
         }
 
         // Draw exit point
-        let exitX = this.exitPoint.x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
-        let exitY = this.exitPoint.y * TILE_SIZE + TILE_SIZE / 2 + offsetY;
-        this.add.rectangle(exitX, exitY, TILE_SIZE, TILE_SIZE, 0xff0000);
+        //let exitX = this.exitPoint.x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
+        //let exitY = this.exitPoint.y * TILE_SIZE + TILE_SIZE / 2 + offsetY;
+        //this.add.rectangle(exitX, exitY, TILE_SIZE, TILE_SIZE, 0xff0000);
         
         // Level and lives text
         this.levelText = this.add.text(10, 10, 'Level: ' + this.level, { fontSize: '16px', fill: '#ffffff', backgroundColor: '#000000'});
