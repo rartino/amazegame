@@ -454,9 +454,9 @@ class GameScene extends Phaser.Scene {
                 } else if (this.map[y][x] == TILE_STONE) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x777777);
                 } else if (this.map[y][x] == TILE_LAVA) {
-                    this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0xff69b4);
-                } else if (this.map[y][x] == TILE_EXIT) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0xff0000);
+                } else if (this.map[y][x] == TILE_EXIT) {
+                    this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x964B00);
                 } else if (this.map[y][x] == TILE_COIN) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x999999);
                     this.coinSprite = this.add.circle(tileX, tileY, TILE_SIZE/2.0, 0xffff00);
