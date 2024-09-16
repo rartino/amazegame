@@ -8,7 +8,7 @@ let TILE_SIZE = 15;
 const TILE_WALL = 0;
 const TILE_FLOOR = 1;
 const TILE_STONE = 2;
-const TILE_PINK_WALL = 3;
+const TILE_LAVA = 3;
 const TILE_COIN = 4;
 const TILE_EXIT = 100;
 
@@ -154,7 +154,7 @@ class GameScene extends Phaser.Scene {
             }
 
             let tile = this.map[nextTileY][nextTileX];
-            if (tile == TILE_WALL || tile == TILE_STONE || tile == TILE_PINK_WALL) {
+            if (tile == TILE_WALL || tile == TILE_STONE) {
                 break;
             }
 
@@ -162,7 +162,7 @@ class GameScene extends Phaser.Scene {
             tileY = nextTileY;
             distance += TILE_SIZE;
 
-            if (tile == TILE_EXIT) {
+            if (tile == TILE_EXIT || tile == TILE_LAVA) {
                 break;
             }            
         }
@@ -212,6 +212,11 @@ class GameScene extends Phaser.Scene {
             this.coinSprite.destroy();
         }
 
+        // Check if hit a lava
+        if (tile == TILE_LAVA) {
+            handleDeath();
+        }
+	    
         // Check if reached exit point
         if (tileX == this.exitPoint.x && tileY == this.exitPoint.y) {
             this.level++;
@@ -219,7 +224,6 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Check if hit a pink wall (should not happen here since movement stops before pink walls)
     }
 
     handleDeath() {
@@ -289,8 +293,8 @@ class GameScene extends Phaser.Scene {
         // Generate dungeon using BSP
         generateDungeon(this.map, random);
 
-        // Add pink walls without blocking the solution
-        addPinkWalls(this.map, random);
+        // Add lava without blocking the solution
+        addLava(this.map, random);
 
         // Place starting point and exit point
         if (!this.placeStartAndExit(random)) {
@@ -401,7 +405,7 @@ class GameScene extends Phaser.Scene {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x999999);
                 } else if (this.map[y][x] == TILE_STONE) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x777777);
-                } else if (this.map[y][x] == TILE_PINK_WALL) {
+                } else if (this.map[y][x] == TILE_LAVA) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0xff69b4);
                 } else if (this.map[y][x] == TILE_EXIT) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0xff0000);
@@ -740,8 +744,8 @@ function carveVerticalTunnel(y1, y2, x, map) {
     }
 }
 
-// Function to add pink walls only next to floor tiles
-function addPinkWalls(map, random) {
+// Function to add lava only next to floor tiles
+function addLava(map, random) {
     let wallTiles = [];
     for (let y = 1; y < MAP_HEIGHT - 1; y++) {
         for (let x = 1; x < MAP_WIDTH - 1; x++) {
@@ -767,13 +771,13 @@ function addPinkWalls(map, random) {
         }
     }
 
-    let numPinkWalls = Math.floor(wallTiles.length * 0.05); // 5% of eligible wall tiles
+    let numLava = Math.floor(wallTiles.length * 0.05); // 5% of eligible wall tiles
 
     random.shuffle(wallTiles);
 
-    for (let i = 0; i < numPinkWalls; i++) {
+    for (let i = 0; i < numLava; i++) {
         let pos = wallTiles[i];
-        map[pos.y][pos.x] = TILE_PINK_WALL;
+        map[pos.y][pos.x] = TILE_LAVA;
     }
 }
 
@@ -817,7 +821,7 @@ function findReachablePositions(map, startX, startY) {
                     break;
                 }
                 tile = map[newY][newX];
-                if (tile == TILE_WALL || tile == TILE_STONE || tile == TILE_PINK_WALL) {
+                if (tile == TILE_WALL || tile == TILE_STONE || tile == TILE_LAVA) {
                     break;
                 }
 
@@ -826,7 +830,7 @@ function findReachablePositions(map, startX, startY) {
                 steps++;
             }
 
-            if (tile == TILE_PINK_WALL) {
+            if (tile == TILE_LAVA) {
                 break;
             }
             
