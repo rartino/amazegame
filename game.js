@@ -186,33 +186,66 @@ class GameScene extends Phaser.Scene {
         this.player.targetX = tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX;
         this.player.targetY = tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY;
 
-        this.player.tileX = tileX;
-        this.player.tileY = tileY;
+        this.player.endTileX = tileX;
+        this.player.endTileY = tileY;
     }
 
     movePlayer(delta) {
-        // Calculate the distance to move this frame
-        let distanceToMove = (PLAYER_SPEED * delta) / 1000; // delta is in ms
-
-        // Calculate the difference between target and current position
-        let dx = this.player.targetX - this.player.x;
-        let dy = this.player.targetY - this.player.y;
-        let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
-
-        if (distanceToMove >= distanceToTarget) {
-            // Snap to target position
-            this.player.x = this.player.targetX;
-            this.player.y = this.player.targetY;
-            this.moving = false;
-
-            // Check for interactions at the new position
-            this.checkPlayerPosition();
-        } else {
-            // Move towards the target
-            let angle = Math.atan2(dy, dx);
-            this.player.x += Math.cos(angle) * distanceToMove;
-            this.player.y += Math.sin(angle) * distanceToMove;
-        }
+	// Calculate the distance to move this frame
+	let distanceToMove = (PLAYER_SPEED * delta) / 1000; // delta is in ms
+	
+	// Calculate the difference between target and current position
+	let dx = this.player.targetX - this.player.x;
+	let dy = this.player.targetY - this.player.y;
+	let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+	
+	// Calculate movement this frame
+	let moveX, moveY;
+	if (distanceToMove >= distanceToTarget) {
+	     // Snap to target position
+	     moveX = dx;
+	     moveY = dy;
+	} else {
+	    // Move towards the target
+	    let angle = Math.atan2(dy, dx);
+	    moveX = Math.cos(angle) * distanceToMove;
+	    moveY = Math.sin(angle) * distanceToMove;
+	}
+	
+	// Store previous tile position
+	let previousTileX = this.player.tileX;
+	let previousTileY = this.player.tileY;
+	
+	// Update player's position
+	this.player.x += moveX;
+	this.player.y += moveY;
+	
+	// Calculate player's current tile position based on new position
+	let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
+	let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
+	
+	let newTileX = Math.floor((this.player.x - offsetX) / TILE_SIZE);
+	let newTileY = Math.floor((this.player.y - offsetY) / TILE_SIZE);
+	
+	// Clamp newTileX and newTileY within map bounds
+	newTileX = Phaser.Math.Clamp(newTileX, 0, MAP_WIDTH - 1);
+	newTileY = Phaser.Math.Clamp(newTileY, 0, MAP_HEIGHT - 1);
+	
+	// If player's tile position has changed, handle interactions
+	if (newTileX !== previousTileX || newTileY !== previousTileY) {
+	    this.player.tileX = newTileX;
+	    this.player.tileY = newTileY;
+	    this.checkPlayerPosition();
+	}
+	
+	// Check if movement is finished
+	if (distanceToMove >= distanceToTarget) {
+	    this.player.x = this.player.targetX;
+	    this.player.y = this.player.targetY;
+	    this.player.tileX = this.player.endTileX;
+	    this.player.tileY = this.player.endTileY;
+	    this.moving = false;
+	}
     }
 
     checkPlayerPosition() {
@@ -525,8 +558,6 @@ class GameScene extends Phaser.Scene {
         });
     }
 }
-
-// Remaining classes and functions...
 
 // Room class
 class Room {
