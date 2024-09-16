@@ -58,7 +58,6 @@ class GameScene extends Phaser.Scene {
         this.exitPoint = null;
         this.moving = false;
         this.moveDirection = null;
-        this.retryCount = 0;
         this.mapData = null;
         this.coinPosition = null;
     }
@@ -76,7 +75,6 @@ class GameScene extends Phaser.Scene {
         this.startPoint = data.startPoint || null;
         this.exitPoint = data.exitPoint || null;
         this.coinPosition = data.coinPosition || null;
-        this.retryCount = 0;
 
         this.moving = false;
         this.moveDirection = null;
@@ -198,7 +196,7 @@ class GameScene extends Phaser.Scene {
     }
 
     generateDungeonWithRetries() {
-        let maxAttempts = 10;
+        let maxAttempts = 100;
         let seed = this.level * 1000;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
@@ -423,10 +421,222 @@ class Room {
     }
 }
 
-// Leaf class and dungeon generation functions remain the same as before, using the random generator passed as parameter.
+// BSP node class
+class Leaf {
+    constructor(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.MIN_LEAF_SIZE = 6;
+        this.leftChild = null;
+        this.rightChild = null;
+        this.room = null;
+    }
 
-// Adjusted addPinkWalls function:
+    split(random) {
+        if (this.leftChild != null || this.rightChild != null) {
+            return false; // Already split
+        }
 
+        let splitH = random.between(0, 1) == 0;
+
+        if (this.width > this.height && this.width / this.height >= 1.25) {
+            splitH = false;
+        } else if (this.height > this.width && this.height / this.width >= 1.25) {
+            splitH = true;
+        }
+
+        let max = (splitH ? this.height : this.width) - this.MIN_LEAF_SIZE;
+        if (max <= this.MIN_LEAF_SIZE) {
+            return false; // Too small to split
+        }
+
+        let split = random.between(this.MIN_LEAF_SIZE, max);
+
+        if (splitH) {
+            this.leftChild = new Leaf(this.x, this.y, this.width, split);
+            this.rightChild = new Leaf(this.x, this.y + split, this.width, this.height - split);
+        } else {
+            this.leftChild = new Leaf(this.x, this.y, split, this.height);
+            this.rightChild = new Leaf(this.x + split, this.y, this.width - split, this.height);
+        }
+
+        return true;
+    }
+
+    createRooms(map, random) {
+        if (this.leftChild != null || this.rightChild != null) {
+            if (this.leftChild != null) {
+                this.leftChild.createRooms(map, random);
+            }
+            if (this.rightChild != null) {
+                this.rightChild.createRooms(map, random);
+            }
+            if (this.leftChild != null && this.rightChild != null) {
+                createCorridor(this.leftChild.getRoom(random), this.rightChild.getRoom(random), map, random);
+            }
+        } else {
+            let roomSizeWidth = random.between(4, this.width - 2);
+            let roomSizeHeight = random.between(4, this.height - 2);
+            let roomPosX = random.between(this.x + 1, this.x + this.width - roomSizeWidth - 1);
+            let roomPosY = random.between(this.y + 1, this.y + this.height - roomSizeHeight - 1);
+
+            this.room = new Room(roomPosX, roomPosY, roomSizeWidth, roomSizeHeight);
+
+            rooms.push(this.room);
+
+            // Dig out the room leaving walls around it
+            for (let y = roomPosY + 1; y < roomPosY + roomSizeHeight - 1; y++) {
+                for (let x = roomPosX + 1; x < roomPosX + roomSizeWidth - 1; x++) {
+                    map[y][x] = TILE_FLOOR;
+                }
+            }
+        }
+    }
+
+    getRoom(random) {
+        if (this.room != null) {
+            return this.room;
+        } else {
+            let lRoom = null;
+            let rRoom = null;
+            if (this.leftChild != null) {
+                lRoom = this.leftChild.getRoom(random);
+            }
+            if (this.rightChild != null) {
+                rRoom = this.rightChild.getRoom(random);
+            }
+            if (lRoom == null && rRoom == null) {
+                return null;
+            } else if (lRoom == null) {
+                return rRoom;
+            } else if (rRoom == null) {
+                return lRoom;
+            } else if (random.between(0, 1) == 0) {
+                return lRoom;
+            } else {
+                return rRoom;
+            }
+        }
+    }
+}
+
+// Dungeon generation functions
+function generateDungeon(map, random) {
+    let rootLeaf = new Leaf(0, 0, MAP_WIDTH, MAP_HEIGHT);
+    let leafs = [];
+    leafs.push(rootLeaf);
+
+    let didSplit = true;
+    while (didSplit) {
+        didSplit = false;
+        for (let i = 0; i < leafs.length; i++) {
+            let leaf = leafs[i];
+            if (leaf.leftChild == null && leaf.rightChild == null) {
+                if (leaf.width > 20 || leaf.height > 20 || random.between(0, 100) > 25) {
+                    if (leaf.split(random)) {
+                        leafs.push(leaf.leftChild);
+                        leafs.push(leaf.rightChild);
+                        didSplit = true;
+                    }
+                }
+            }
+        }
+    }
+
+    rootLeaf.createRooms(map, random);
+}
+
+function createCorridor(roomA, roomB, map, random) {
+    // Choose door positions at corners
+    let doorA = getDoorPosition(roomA, random);
+    let doorB = getDoorPosition(roomB, random);
+
+    // Carve doors
+    map[doorA.y][doorA.x] = TILE_FLOOR;
+    map[doorB.y][doorB.x] = TILE_FLOOR;
+
+    // Record door positions in rooms
+    roomA.addDoor(doorA.x, doorA.y);
+    roomB.addDoor(doorB.x, doorB.y);
+
+    // Create corridor between doors
+    if (random.between(0, 1) == 1) {
+        // Horizontal then vertical
+        carveHorizontalTunnel(doorA.x, doorB.x, doorA.y, map);
+        carveVerticalTunnel(doorA.y, doorB.y, doorB.x, map);
+    } else {
+        // Vertical then horizontal
+        carveVerticalTunnel(doorA.y, doorB.y, doorA.x, map);
+        carveHorizontalTunnel(doorA.x, doorB.x, doorB.y, map);
+    }
+
+    // Place stones if doors are not in corners
+    checkAndPlaceStone(roomA, doorA, map);
+    checkAndPlaceStone(roomB, doorB, map);
+}
+
+function getDoorPosition(room, random) {
+    let doorPositions = [
+        { x: room.x + 1, y: room.y }, // Top wall, left corner
+        { x: room.x + room.width - 2, y: room.y }, // Top wall, right corner
+        { x: room.x + 1, y: room.y + room.height - 1 }, // Bottom wall, left corner
+        { x: room.x + room.width - 2, y: room.y + room.height - 1 }, // Bottom wall, right corner
+        { x: room.x, y: room.y + 1 }, // Left wall, top corner
+        { x: room.x, y: room.y + room.height - 2 }, // Left wall, bottom corner
+        { x: room.x + room.width - 1, y: room.y + 1 }, // Right wall, top corner
+        { x: room.x + room.width - 1, y: room.y + room.height - 2 } // Right wall, bottom corner
+    ];
+
+    // Randomly select a door position
+    return random.pick(doorPositions);
+}
+
+function checkAndPlaceStone(room, door, map) {
+    // Check if the door is in a corner
+    let isCorner = false;
+
+    if ((door.x == room.x || door.x == room.x + room.width - 1) && (door.y == room.y || door.y == room.y + room.height - 1)) {
+        isCorner = true;
+    }
+
+    if (!isCorner) {
+        // Place a stone inside the room to one side of the door
+        let stoneX = door.x;
+        let stoneY = door.y;
+
+        if (door.x == room.x) {
+            stoneX += 1;
+        } else if (door.x == room.x + room.width - 1) {
+            stoneX -= 1;
+        } else if (door.y == room.y) {
+            stoneY += 1;
+        } else if (door.y == room.y + room.height - 1) {
+            stoneY -= 1;
+        }
+
+        map[stoneY][stoneX] = TILE_STONE;
+    }
+}
+
+function carveHorizontalTunnel(x1, x2, y, map) {
+    let min = Math.min(x1, x2);
+    let max = Math.max(x1, x2);
+    for (let x = min; x <= max; x++) {
+        if (map[y][x] != TILE_FLOOR) map[y][x] = TILE_FLOOR;
+    }
+}
+
+function carveVerticalTunnel(y1, y2, x, map) {
+    let min = Math.min(y1, y2);
+    let max = Math.max(y1, y2);
+    for (let y = min; y <= max; y++) {
+        if (map[y][x] != TILE_FLOOR) map[y][x] = TILE_FLOOR;
+    }
+}
+
+// Function to add pink walls only next to floor tiles
 function addPinkWalls(map, random) {
     let wallTiles = [];
     for (let y = 1; y < MAP_HEIGHT - 1; y++) {
@@ -504,11 +714,7 @@ function findReachablePositions(map, startX, startY) {
                 }
                 tile = map[newY][newX];
                 if (tile == TILE_WALL || tile == TILE_STONE || tile == TILE_PINK_WALL) {
-                    if (tile == TILE_PINK_WALL) {
-                        break;
-                    } else {
-                        break;
-                    }
+                    break;
                 }
 
                 x = newX;
@@ -516,6 +722,10 @@ function findReachablePositions(map, startX, startY) {
                 steps++;
             }
 
+            if (tile == TILE_PINK_WALL) {
+                break;
+            }
+            
             // If we have moved at least one step
             if (steps > 0) {
                 let key = posKey(x, y);
