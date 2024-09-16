@@ -64,7 +64,7 @@ class GameScene extends Phaser.Scene {
 
     preload() {
         // Load coin image
-        this.load.image('coin', 'coin.png');
+        // this.load.image('coin', 'coin.png');
     }
 
     create(data) {
@@ -89,8 +89,8 @@ class GameScene extends Phaser.Scene {
         }
 
         // Add level and lives text
-        this.levelText = this.add.text(10, 10, 'Level: ' + this.level, { fontSize: '16px', fill: '#ffffff' });
-        this.livesText = this.add.text(10, 30, 'Lives: ' + this.lives, { fontSize: '16px', fill: '#ffffff' });
+        //this.levelText = this.add.text(10, 10, 'Level: ' + this.level, { fontSize: '16px', fill: '#ffffff' });
+        //this.livesText = this.add.text(10, 30, 'Lives: ' + this.lives, { fontSize: '16px', fill: '#ffffff' });
 
         // Set up cursor keys and restart key
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -139,7 +139,15 @@ class GameScene extends Phaser.Scene {
             if (tile == TILE_FLOOR || tile == TILE_COIN) {
                 this.player.tileX = newX;
                 this.player.tileY = newY;
-                this.player.setPosition(this.player.tileX * TILE_SIZE + TILE_SIZE / 2, this.player.tileY * TILE_SIZE + TILE_SIZE / 2);
+
+                // Calculate offsets to center the maze
+                let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
+                let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
+
+                this.player.setPosition(
+                    this.player.tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX,
+                    this.player.tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY
+                );
 
                 // Check if collected a coin
                 if (tile == TILE_COIN) {
@@ -170,6 +178,7 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+
     handleDeath() {
         this.lives--;
         if (this.lives > 0) {
@@ -189,11 +198,19 @@ class GameScene extends Phaser.Scene {
     }
 
     addPlayer() {
+        // Calculate offsets to center the maze
+        let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
+        let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
+
         this.player = this.add.rectangle(0, 0, TILE_SIZE, TILE_SIZE, 0x00ff00);
         this.player.tileX = this.startPoint.x;
         this.player.tileY = this.startPoint.y;
-        this.player.setPosition(this.player.tileX * TILE_SIZE + TILE_SIZE / 2, this.player.tileY * TILE_SIZE + TILE_SIZE / 2);
+        this.player.setPosition(
+            this.player.tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX,
+            this.player.tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY
+        );
     }
+
 
     generateDungeonWithRetries() {
         let maxAttempts = 100;
@@ -325,17 +342,14 @@ class GameScene extends Phaser.Scene {
         // Clear existing graphics
         this.children.removeAll();
 
-        // Redraw level and lives text
-        this.levelText = this.add.text(10, 10, 'Level: ' + this.level, { fontSize: '16px', fill: '#ffffff' });
-        this.livesText = this.add.text(10, 30, 'Lives: ' + this.lives, { fontSize: '16px', fill: '#ffffff' });
-
-        // Add restart button
-        this.addRestartButton();
+        // Calculate offsets to center the maze
+        let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
+        let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
 
         for (let y = 0; y < MAP_HEIGHT; y++) {
             for (let x = 0; x < MAP_WIDTH; x++) {
-                let tileX = x * TILE_SIZE + TILE_SIZE / 2;
-                let tileY = y * TILE_SIZE + TILE_SIZE / 2;
+                let tileX = x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
+                let tileY = y * TILE_SIZE + TILE_SIZE / 2 + offsetY;
 
                 if (this.map[y][x] == TILE_WALL) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x444444);
@@ -347,13 +361,23 @@ class GameScene extends Phaser.Scene {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0xff69b4);
                 } else if (this.map[y][x] == TILE_COIN) {
                     this.add.rectangle(tileX, tileY, TILE_SIZE, TILE_SIZE, 0x999999);
-                    this.coinSprite = this.add.image(tileX, tileY, 'coin').setDisplaySize(TILE_SIZE, TILE_SIZE);
+                    this.coinSprite = this.add.circle(tileX, tileY, TILE_SIZE/2.0, 0xffff00);
+                    //this.add.image(tileX, tileY, 'coin').setDisplaySize(TILE_SIZE, TILE_SIZE);
                 }
             }
         }
 
         // Draw exit point
-        this.add.rectangle(this.exitPoint.x * TILE_SIZE + TILE_SIZE / 2, this.exitPoint.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE, TILE_SIZE, 0xff0000);
+        let exitX = this.exitPoint.x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
+        let exitY = this.exitPoint.y * TILE_SIZE + TILE_SIZE / 2 + offsetY;
+        this.add.rectangle(exitX, exitY, TILE_SIZE, TILE_SIZE, 0xff0000);
+        
+        // Level and lives text
+        this.levelText = this.add.text(10, 10, 'Level: ' + this.level, { fontSize: '16px', fill: '#ffffff', backgroundColor: '#000000'});
+        this.livesText = this.add.text(10, 30, 'Lives: ' + this.lives, { fontSize: '16px', fill: '#ffffff', backgroundColor: '#000000'});
+
+        // Restart button
+        this.addRestartButton();
     }
 
     addTouchControls() {
@@ -392,8 +416,42 @@ class GameScene extends Phaser.Scene {
         }, this);
     }
 
+    drawButton(x, y, textString, textStyle) {
+        // Create the text object
+        const text = this.add.text(x, y, textString, textStyle);
+
+        // Add some padding to the rectangle
+        const padding = 10;
+
+        // Measure the width and height of the text
+        const textWidth = text.width;
+        const textHeight = text.height;
+
+        // Set the position of the rectangle to match the text position
+        const rectX = text.x - padding;
+        const rectY = text.y - padding;
+        const rectWidth = textWidth + padding * 2;
+        const rectHeight = textHeight + padding * 2;
+
+        // Create the graphics object for the rectangle
+        const graphics = this.add.graphics();
+
+        // Draw the rounded rectangle (fill black with white border)
+        graphics.fillStyle(0x000000, 1); // Black fill
+        graphics.lineStyle(2, 0xffffff, 1); // White border
+
+        // Draw the rounded rectangle
+        graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, 10);
+        graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, 10);
+				graphics.setInteractive(new Phaser.Geom.Rectangle(rectX, rectY, rectWidth, rectHeight), Phaser.Geom.Rectangle.Contains);
+
+        text.setDepth(1);
+        
+        return graphics;
+    }
+
     addRestartButton() {
-        let restartButton = this.add.text(this.scale.width - 80, 10, 'Restart', { fontSize: '16px', fill: '#ffffff', backgroundColor: '#000000' })
+        let restartButton = this.drawButton(this.scale.width - 70, 20, 'Retry', { fontSize: '16px', fill: '#ffffff', backgroundColor: '#000000' })
             .setInteractive();
 
         restartButton.on('pointerdown', () => {
@@ -757,14 +815,15 @@ const config = {
     type: Phaser.AUTO,
     backgroundColor: '#000000',
     scene: [BootScene, GameScene],
+    backgroundColor: 0x444444,
     scale: {
-        mode: Phaser.Scale.FIT,
+        mode: Phaser.Scale.RESIZE, // Allows the game to resize automatically
         autoCenter: Phaser.Scale.CENTER_BOTH,
-        parent: 'phaser-example',
         width: window.innerWidth,
         height: window.innerHeight,
     },
 };
+
 
 const game = new Phaser.Game(config);
 
@@ -772,5 +831,5 @@ const game = new Phaser.Game(config);
 const maxTiles = 40; // Maximum number of tiles in either dimension
 const tileScale = Math.min(window.innerWidth, window.innerHeight) / maxTiles;
 TILE_SIZE = tileScale;
-MAP_WIDTH = Math.floor(window.innerWidth / TILE_SIZE);
-MAP_HEIGHT = Math.floor(window.innerHeight / TILE_SIZE);
+MAP_WIDTH = 40;
+MAP_HEIGHT = 40;
