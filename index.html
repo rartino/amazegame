@@ -9,8 +9,14 @@
 </head>
 <body>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-<script src="./game.js"></script>
+<script type="module">
+    import VERSION from './version.js';
+
+    // Dynamically load the game.js with cache-busting
+    const script = document.createElement('script');
+    script.src = `./game.js?v=${VERSION}`;  // Add version number to script URL for cache-busting
+    document.body.appendChild(script);
+</script>
 
 <script>
 // Register service worker
