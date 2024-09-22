@@ -1,5 +1,5 @@
 // Map parameters
-const PLAYER_SPEED = 1000; // pixels per second
+const PLAYER_SPEED = 40; // tiles per second
 let MAP_WIDTH = 35;
 let MAP_HEIGHT = 35;
 
@@ -191,7 +191,7 @@ class GameScene extends Phaser.Scene {
 
     movePlayer(delta) {
 	// Calculate the distance to move this frame
-	let distanceToMove = (PLAYER_SPEED * delta) / 1000; // delta is in ms
+	let distanceToMove = (PLAYER_SPEED * delta * TILE_SIZE) / 1000; // delta is in ms
 	
 	// Calculate the difference between target and current position
 	let dx = this.player.targetX - this.player.x;
@@ -438,10 +438,63 @@ class GameScene extends Phaser.Scene {
         // Clear existing graphics
         this.children.removeAll();
 
+        // Clear existing graphics
+        if (this.mapGraphics) {
+            this.mapGraphics.clear();
+            this.mapGraphics.destroy();
+        }
+        
+        this.mapGraphics = this.add.graphics();
+
         // Calculate offsets to center the maze
         let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
         let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
 
+       // Draw the map onto the graphics object
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                let tileX = x * TILE_SIZE + offsetX;
+                let tileY = y * TILE_SIZE + offsetY;
+
+                //if (this.map[y][x] == TILE_WALL) {
+                //    this.mapGraphics.fillStyle(0x444444, 1);
+                //    this.mapGraphics.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                //}  
+                if (this.map[y][x] == TILE_FLOOR) {
+                    this.mapGraphics.fillStyle(0x999999, 1);
+                    this.mapGraphics.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                } else if (this.map[y][x] == TILE_STONE) {
+                    this.mapGraphics.fillStyle(0x777777, 1);
+                    this.mapGraphics.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                }  else if (this.map[y][x] == TILE_LAVA) {
+                    this.mapGraphics.fillStyle(0xff3300, 1);
+                    this.mapGraphics.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                } else if (this.map[y][x] == TILE_EXIT) {
+                    this.mapGraphics.fillStyle(0x562B00, 1);
+                    this.mapGraphics.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                }  else if (this.map[y][x] == TILE_COIN) {
+                    this.mapGraphics.fillStyle(0x999999, 1);
+                    this.mapGraphics.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                    
+                    this.coinSprite = this.add.graphics();
+                    this.coinSprite.fillStyle(0xff0000, 1);
+                    this.coinSprite.beginPath();
+                    this.coinSprite.moveTo(tileX + TILE_SIZE / 2, tileY +(TILE_SIZE*4)/5);
+                    this.coinSprite.arc(tileX + TILE_SIZE / 2 - TILE_SIZE / 4, tileY + TILE_SIZE / 2 - TILE_SIZE / 4, TILE_SIZE / 4, Math.PI, 0, false);
+                    this.coinSprite.arc(tileX + TILE_SIZE / 2 + TILE_SIZE / 4, tileY + TILE_SIZE / 2 - TILE_SIZE / 4, TILE_SIZE / 4, Math.PI, 0, false);
+                    //this.coinSprite.lineTo(tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2 + TILE_SIZE / 2);
+                    this.coinSprite.closePath();
+                    this.coinSprite.fillPath();
+                    
+                    //this.coinSprite = this.add.circle(tileX+TILE_SIZE/2.0, tileY+TILE_SIZE/2.0, TILE_SIZE/2.0, 0xffff00);
+                    //this.mapGraphics.fillStyle(0xffff00, 1);
+										//this.coinSprite = this.mapGraphics.fillCircle(tileX, tileY, TILE_SIZE/2.0);
+                    //this.add.image(tileX, tileY, 'coin').setDisplaySize(TILE_SIZE, TILE_SIZE);
+                }
+            }
+        }
+
+				/*
         for (let y = 0; y < MAP_HEIGHT; y++) {
             for (let x = 0; x < MAP_WIDTH; x++) {
                 let tileX = x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
@@ -464,6 +517,7 @@ class GameScene extends Phaser.Scene {
                 }
             }
         }
+        */
 
         // Draw exit point
         //let exitX = this.exitPoint.x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
@@ -918,6 +972,7 @@ const config = {
         width: window.innerWidth,
         height: window.innerHeight,
     },
+    fps: { forceSetTimeOut: true, target: 120 }
 };
 
 // Adjust MAP_WIDTH, MAP_HEIGHT, and TILE_SIZE based on screen size
