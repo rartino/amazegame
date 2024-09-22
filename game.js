@@ -1,4 +1,4 @@
-importScripts('./version.js'); // Import the version number
+import VERSION from './version.js'; // Import the version number
 
 // Map parameters
 const PLAYER_SPEED = 60; // tiles per second
