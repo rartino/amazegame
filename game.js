@@ -1,4 +1,4 @@
-import VERSION from './version.js'; // Import the version number
+const APP_VERSION = window.APP_VERSION || '(Unknown)';
 
 // Map parameters
 const PLAYER_SPEED = 60; // tiles per second
@@ -256,7 +256,7 @@ class BootScene extends Phaser.Scene {
 	    }).setOrigin(0.5);
 	
 	    // Display version number
-	    this.add.text(this.scale.width / 2, this.scale.height / 2 + 85, `Version: ${VERSION}`, { 
+	    this.add.text(this.scale.width / 2, this.scale.height / 2 + 85, `Version: ${APP_VERSION}`, { 
 		fontSize: `${versionFontSize}px`, 
 		fill: '#ffffff' 
 	    }).setOrigin(0.5);
