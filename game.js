@@ -1,3 +1,5 @@
+importScripts('./version.js'); // Import the version number
+
 // Map parameters
 const PLAYER_SPEED = 60; // tiles per second
 let MAP_WIDTH = 35;
@@ -240,7 +242,10 @@ class BootScene extends Phaser.Scene {
 	
 	// Display start message
 	this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Tap or Press SPACE to Play', { fontSize: '24px', fill: '#ffffff' }).setOrigin(0.5);
-	
+
+	// Display start message
+	this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Version: ${VERSION}', { fontSize: '24px', fill: '#ffffff' }).setOrigin(0.5);
+	    
 	// Start the game on spacebar press or tap
 	this.input.keyboard.once('keydown-SPACE', () => {
 	   this.scene.start('GameScene', { level: 1, lives: 3 });
