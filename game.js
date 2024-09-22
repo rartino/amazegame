@@ -22,7 +22,7 @@ class Centipede {
         this.length = length;
         this.bodySegments = [];
         this.direction = null;
-        this.speed = 100; // Adjust speed as needed
+        this.speed = 10; // Adjust speed as needed
 
         // Calculate offsets
         let offsetX = (scene.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
@@ -91,7 +91,7 @@ class Centipede {
             return;
         }
 
-        let distanceToMove = (this.speed * delta) / 1000;
+        let distanceToMove = Math.max((this.speed * delta * TILE_SIZE) / 1000, 1);
 
         // Calculate offsets
         let offsetX = (this.scene.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
