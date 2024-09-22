@@ -29,13 +29,18 @@
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     
   <script type="module">
-     import VERSION from './version.js';
-
-     // Dynamically load the game.js with cache-busting
-     const script = document.createElement('script');
-     script.type = 'module';
-     script.src = `./game.js?v=${VERSION}`;  // Add version number to script URL for cache-busting
-     document.body.appendChild(script);
+    fetch('./manifest.json')
+        .then(response => response.json())
+        .then(manifest => {
+            const version = manifest.version;
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = `./game.js?v=${version}`;
+            document.body.appendChild(script);
+        })
+        .catch(error => {
+            console.error('Failed to load manifest:', error);
+        });
   </script>
 
   <script>
