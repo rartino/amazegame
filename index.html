@@ -32,10 +32,10 @@
     fetch('./manifest.json')
         .then(response => response.json())
         .then(manifest => {
-            const version = manifest.version;
+            window.APP_VERSION = manifest.version;
             const script = document.createElement('script');
             script.type = 'module';
-            script.src = `./game.js?v=${version}`;
+            script.src = `./game.js?v=${window.APP_VERSION}`;
             document.body.appendChild(script);
         })
         .catch(error => {
