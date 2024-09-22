@@ -1225,6 +1225,6 @@ const config = {
 };
 // Adjust MAP_WIDTH, MAP_HEIGHT, and TILE_SIZE based on screen size
 const maxTiles = 40; // Maximum number of tiles in either dimension
-let TILE_SIZE = Math.min(window.innerWidth, window.innerHeight) / Math.max(MAP_WIDTH, MAP_HEIGHT);
+let TILE_SIZE = Math.floor(Math.min(window.innerWidth / MAP_WIDTH, window.innerHeight / MAP_HEIGHT));
 
 const game = new Phaser.Game(config);
