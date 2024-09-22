@@ -244,7 +244,7 @@ class BootScene extends Phaser.Scene {
 	this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Tap or Press SPACE to Play', { fontSize: '24px', fill: '#ffffff' }).setOrigin(0.5);
 
 	// Display start message
-	this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Version: ${VERSION}', { fontSize: '24px', fill: '#ffffff' }).setOrigin(0.5);
+	this.add.text(this.scale.width / 2, this.scale.height / 2 + 75, 'Version: ${VERSION}', { fontSize: '12px', fill: '#ffffff' }).setOrigin(0.5);
 	    
 	// Start the game on spacebar press or tap
 	this.input.keyboard.once('keydown-SPACE', () => {
