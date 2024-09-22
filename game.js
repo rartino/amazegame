@@ -14,6 +14,189 @@ const TILE_EXIT = 100;
 // Global variables
 let rooms = []; // Declare rooms as a global variable
 
+class Centipede {
+    constructor(scene, startX, startY, length) {
+        this.scene = scene;
+        this.length = length;
+        this.bodySegments = [];
+        this.direction = null;
+        this.speed = 100; // Adjust speed as needed
+
+        // Calculate offsets
+        let offsetX = (scene.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
+        let offsetY = (scene.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
+
+        // Initialize body segments
+        for (let i = 0; i < length; i++) {
+            let x = startX;
+            let y = startY;
+
+            let segment = scene.add.rectangle(
+                x * TILE_SIZE + TILE_SIZE / 2 + offsetX,
+                y * TILE_SIZE + TILE_SIZE / 2 + offsetY,
+                TILE_SIZE,
+                TILE_SIZE,
+                i > 0 ? 0xffff00 : 0xCCCC00 // Yellow color
+            );
+            segment.tileX = x;
+            segment.tileY = y;
+            segment.prevX = x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
+            segment.prevY = y * TILE_SIZE + TILE_SIZE / 2 + offsetY;
+            segment.targetX = segment.prevX;
+            segment.targetY = segment.prevY;
+            this.bodySegments.push(segment);
+        }
+
+        // Set initial direction
+        this.chooseNewDirection();
+    }
+
+    chooseNewDirection() {
+        let directions = [
+            { dx: -1, dy: 0 }, // Left
+            { dx: 1, dy: 0 },  // Right
+            { dx: 0, dy: -1 }, // Up
+            { dx: 0, dy: 1 }   // Down
+        ];
+
+        // Remove directions blocked by walls
+        let head = this.bodySegments[0];
+        let validDirections = directions.filter(dir => {
+            let newX = head.tileX + dir.dx;
+            let newY = head.tileY + dir.dy;
+            if (newX < 0 || newX >= MAP_WIDTH || newY < 0 || newY >= MAP_HEIGHT) {
+                return false;
+            }
+            let tile = this.scene.map[newY][newX];
+            return tile !== TILE_WALL && tile !== TILE_LAVA && tile !== TILE_STONE;
+        });
+
+        // Randomly choose a valid direction
+        if (validDirections.length > 0) {
+            let random = new Phaser.Math.RandomDataGenerator();
+            this.direction = random.pick(validDirections);
+        } else {
+            // No valid directions; centipede cannot move
+            this.direction = null;
+        }
+    }
+
+    update(delta) {
+        if (!this.direction) {
+            this.chooseNewDirection();
+            return;
+        }
+
+        let distanceToMove = (this.speed * delta) / 1000;
+
+        // Calculate offsets
+        let offsetX = (this.scene.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
+        let offsetY = (this.scene.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
+
+        // Update head segment
+        let head = this.bodySegments[0];
+        if (!head.targetX || !head.targetY) {
+            head.targetX = head.x + this.direction.dx * TILE_SIZE;
+            head.targetY = head.y + this.direction.dy * TILE_SIZE;
+        }
+
+        let dx = head.targetX - head.x;
+        let dy = head.targetY - head.y;
+        let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+
+        if (distanceToMove >= distanceToTarget) {
+            // Snap to target position
+            head.x = head.targetX;
+            head.y = head.targetY;
+
+            // Update tile position
+            head.tileX += this.direction.dx;
+            head.tileY += this.direction.dy;
+
+            // Set new target for head
+            head.prevX = head.x;
+            head.prevY = head.y;
+            head.targetX = head.x + this.direction.dx * TILE_SIZE;
+            head.targetY = head.y + this.direction.dy * TILE_SIZE;
+
+            // Update body segments' targets
+            for (let i = 1; i < this.bodySegments.length; i++) {
+                let segment = this.bodySegments[i];
+                let prevSegment = this.bodySegments[i - 1];
+
+                segment.prevX = segment.x;
+                segment.prevY = segment.y;
+                segment.targetX = prevSegment.prevX;
+                segment.targetY = prevSegment.prevY;
+            }
+            
+            // Check for collision with wall
+            let targetTileX = head.tileX + this.direction.dx;
+            let targetTileY = head.tileY + this.direction.dy;
+            let tile = this.scene.map[targetTileY][targetTileX];
+            if (tile === TILE_WALL || tile === TILE_LAVA || tile === TILE_STONE) {
+                //// Move back to previous position
+                //head.tileX -= this.direction.dx;
+                //head.tileY -= this.direction.dy;
+                //head.x = head.tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX;
+                //head.y = head.tileY * TILE_SIZE + TILE_SIZE / 2 + offsetY;
+                head.targetX = null;
+                head.targetY = null;
+                this.chooseNewDirection();
+                return;
+            }
+            
+            
+        } else {
+            // Move head towards the target
+            let angle = Math.atan2(dy, dx);
+            let moveX = Math.cos(angle) * distanceToMove;
+            let moveY = Math.sin(angle) * distanceToMove;
+            head.x += moveX;
+            head.y += moveY;
+        }
+
+        // Update body segments
+        for (let i = 1; i < this.bodySegments.length; i++) {
+            let segment = this.bodySegments[i];
+
+            let dx = segment.targetX - segment.x;
+            let dy = segment.targetY - segment.y;
+            let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+
+            if (distanceToMove >= distanceToTarget) {
+                // Snap to target position
+                segment.x = segment.targetX;
+                segment.y = segment.targetY;
+            } else {
+                // Move towards the target
+                let angle = Math.atan2(dy, dx);
+                let moveX = Math.cos(angle) * distanceToMove;
+                let moveY = Math.sin(angle) * distanceToMove;
+                segment.x += moveX;
+                segment.y += moveY;
+            }
+        }
+
+        // Check for collision with player
+        this.checkPlayerCollision();
+    }
+
+    checkPlayerCollision() {
+        let player = this.scene.player;
+        let playerBounds = player.getBounds();
+
+        for (let segment of this.bodySegments) {
+            let segmentBounds = segment.getBounds();
+            if (Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, segmentBounds)) {
+                // Player dies
+                this.scene.handleDeath();
+                break;
+            }
+        }
+    }
+}
+
 // BootScene for the start screen
 class BootScene extends Phaser.Scene {
     constructor() {
@@ -77,6 +260,7 @@ class GameScene extends Phaser.Scene {
         this.moveDirection = null;
         this.mapData = null;
         this.coinPosition = null;
+        this.centipede = null;
     }
 
     preload() {
@@ -104,6 +288,8 @@ class GameScene extends Phaser.Scene {
             this.drawMap();
             this.addPlayer();
         }
+
+        this.createCentipede();
 
         // Add level and lives text
         //this.levelText = this.add.text(10, 10, 'Level: ' + this.level, { fontSize: '16px', fill: '#ffffff' });
@@ -141,6 +327,32 @@ class GameScene extends Phaser.Scene {
         if (this.moving) {
             this.movePlayer(delta);
         }
+        
+        if (this.centipede) {
+            this.centipede.update(delta);
+        }        
+    }
+
+    createCentipede() {
+        // Determine random length between 2 and 6
+        let random = new Phaser.Math.RandomDataGenerator();
+        let length = random.between(2, 6);
+
+        // Find starting position on the map
+        let possiblePositions = [];
+        for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+            for (let x = 1; x < MAP_WIDTH - 1; x++) {
+                if (this.map[y][x] === TILE_FLOOR && !(x === this.startPoint.x && y === this.startPoint.y)) {
+                    possiblePositions.push({ x: x, y: y });
+                }
+            }
+        }
+
+        random.shuffle(possiblePositions);
+        let startPos = possiblePositions[0];
+
+        // Initialize centipede
+        this.centipede = new Centipede(this, startPos.x, startPos.y, length);
     }
 
     setPlayerMovement(dx, dy) {
@@ -972,7 +1184,6 @@ const config = {
         width: window.innerWidth,
         height: window.innerHeight,
     },
-    fps: { forceSetTimeOut: true, target: 120 }
 };
 
 // Adjust MAP_WIDTH, MAP_HEIGHT, and TILE_SIZE based on screen size
