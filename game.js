@@ -1203,16 +1203,26 @@ function posKey(x, y) {
 const config = {
     type: Phaser.AUTO,
     backgroundColor: '#000000',
-    scene: [BootScene, GameScene],
-    backgroundColor: 0x444444,
+    scene: [BootScene, GameScene], 
     scale: {
-        mode: Phaser.Scale.RESIZE, // Allows the game to resize automatically
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: window.innerWidth,
-        height: window.innerHeight,
+        mode: Phaser.Scale.FIT,  
+        autoCenter: Phaser.Scale.CENTER_BOTH,  
+        width: window.innerWidth,  
+        height: window.innerHeight,  
+        parent: 'game-container', 
     },
+    render: {
+        pixelArt: true,  
+        antialias: false,  
+    },
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    }
 };
-
 // Adjust MAP_WIDTH, MAP_HEIGHT, and TILE_SIZE based on screen size
 const maxTiles = 40; // Maximum number of tiles in either dimension
 let TILE_SIZE = Math.min(window.innerWidth, window.innerHeight) / Math.max(MAP_WIDTH, MAP_HEIGHT);
