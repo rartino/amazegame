@@ -410,8 +410,8 @@ class GameScene extends Phaser.Scene {
 
     movePlayer(delta) {
 	// Calculate the distance to move this frame
-	let distanceToMove = (PLAYER_SPEED * delta * TILE_SIZE) / 1000; // delta is in ms
-	
+	let distanceToMove = Math.max((PLAYER_SPEED * delta * TILE_SIZE) / 1000,1);
+
 	// Calculate the difference between target and current position
 	let dx = this.player.targetX - this.player.x;
 	let dy = this.player.targetY - this.player.y;
