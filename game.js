@@ -217,45 +217,59 @@ class BootScene extends Phaser.Scene {
         this.load.image('background', 'background.png');
     }
 
-    create() {
-	// Get the dimensions of the background image
-	const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'background');
-	
-	// Calculate aspect ratios
-	const bgRatio = bg.width / bg.height;
-	const screenRatio = this.scale.width / this.scale.height;
-	
-	// Scale the image to fill the screen while maintaining aspect ratio
-	if (bgRatio > screenRatio) {
-	    // If the background is wider than the screen, fit the height and crop the width
-	    bg.setScale(this.scale.height / bg.height);
-	} else {
-	    // If the background is taller than the screen, fit the width and crop the height
-	    bg.setScale(this.scale.width / bg.width);
-	}
-	
-	// Center the background image
-	bg.setPosition(this.scale.width / 2, this.scale.height / 2);
-	
-	// Display title
-	this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, 'Amazegame', { fontSize: '48px', fill: '#ffffff' }).setOrigin(0.5);
-	
-	// Display start message
-	this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Tap or Press SPACE to Play', { fontSize: '24px', fill: '#ffffff' }).setOrigin(0.5);
-
-	// Display start message
-	this.add.text(this.scale.width / 2, this.scale.height / 2 + 85, `Version: ${VERSION}`, { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5);
+	create() {
+	    // Get the dimensions of the background image
+	    const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'background');
 	    
-	// Start the game on spacebar press or tap
-	this.input.keyboard.once('keydown-SPACE', () => {
-	   this.scene.start('GameScene', { level: 1, lives: 3 });
-	});
+	    // Calculate aspect ratios
+	    const bgRatio = bg.width / bg.height;
+	    const screenRatio = this.scale.width / this.scale.height;
+	    
+	    // Scale the image to fill the screen while maintaining aspect ratio
+	    if (bgRatio > screenRatio) {
+		// If the background is wider than the screen, fit the height and crop the width
+		bg.setScale(this.scale.height / bg.height);
+	    } else {
+		// If the background is taller than the screen, fit the width and crop the height
+		bg.setScale(this.scale.width / bg.width);
+	    }
+	    
+	    // Center the background image
+	    bg.setPosition(this.scale.width / 2, this.scale.height / 2);
+	    
+	    // Dynamically calculate font sizes based on screen width
+	    const titleFontSize = Math.min(this.scale.width * 0.1, 48);  // 10% of the screen width, max 48px
+	    const startMessageFontSize = Math.min(this.scale.width * 0.05, 24); // 5% of the screen width, max 24px
+	    const versionFontSize = Math.min(this.scale.width * 0.04, 18); // 4% of the screen width, max 18px
 	
-	this.input.once('pointerdown', () => {
-	    this.scene.start('GameScene', { level: 1, lives: 3 });
-	});
-    }
-}
+	    // Display title (centered)
+	    this.add.text(this.scale.width / 2, this.scale.height / 2 - 50, 'Amazegame', { 
+		fontSize: `${titleFontSize}px`, 
+		fill: '#ffffff' 
+	    }).setOrigin(0.5);
+	
+	    // Display start message with word wrapping to avoid cut-off on smaller screens
+	    this.add.text(this.scale.width / 2, this.scale.height / 2 + 50, 'Tap or Press SPACE to Play', { 
+		fontSize: `${startMessageFontSize}px`, 
+		fill: '#ffffff',
+		wordWrap: { width: this.scale.width * 0.8, useAdvancedWrap: true }  // Set wrapping width to 80% of screen width
+	    }).setOrigin(0.5);
+	
+	    // Display version number
+	    this.add.text(this.scale.width / 2, this.scale.height / 2 + 85, `Version: ${VERSION}`, { 
+		fontSize: `${versionFontSize}px`, 
+		fill: '#ffffff' 
+	    }).setOrigin(0.5);
+	    
+	    // Start the game on spacebar press or tap
+	    this.input.keyboard.once('keydown-SPACE', () => {
+		this.scene.start('GameScene', { level: 1, lives: 3 });
+	    });
+	    
+	    this.input.once('pointerdown', () => {
+		this.scene.start('GameScene', { level: 1, lives: 3 });
+	    });
+	}
 
 // Main GameScene
 class GameScene extends Phaser.Scene {
