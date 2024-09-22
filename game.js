@@ -1,5 +1,5 @@
 // Map parameters
-const PLAYER_SPEED = 40; // tiles per second
+const PLAYER_SPEED = 60; // tiles per second
 let MAP_WIDTH = 35;
 let MAP_HEIGHT = 35;
 
@@ -38,17 +38,18 @@ class Centipede {
                 TILE_SIZE,
                 i > 0 ? 0xffff00 : 0xCCCC00 // Yellow color
             );
+           	segment.depth = i == 0 ? 5 : 0;
             segment.tileX = x;
             segment.tileY = y;
             segment.prevX = x * TILE_SIZE + TILE_SIZE / 2 + offsetX;
             segment.prevY = y * TILE_SIZE + TILE_SIZE / 2 + offsetY;
-            segment.targetX = segment.prevX;
-            segment.targetY = segment.prevY;
+            //segment.targetX = segment.prevX;
+            //segment.targetY = segment.prevY;
             this.bodySegments.push(segment);
         }
 
         // Set initial direction
-        this.chooseNewDirection();
+        //this.chooseNewDirection();
     }
 
     chooseNewDirection() {
@@ -82,6 +83,7 @@ class Centipede {
     }
 
     update(delta) {
+       
         if (!this.direction) {
             this.chooseNewDirection();
             return;
@@ -96,14 +98,14 @@ class Centipede {
         // Update head segment
         let head = this.bodySegments[0];
         if (!head.targetX || !head.targetY) {
-            head.targetX = head.x + this.direction.dx * TILE_SIZE;
-            head.targetY = head.y + this.direction.dy * TILE_SIZE;
+            head.targetX = head.prevX + this.direction.dx * TILE_SIZE;
+            head.targetY = head.prevY + this.direction.dy * TILE_SIZE;
         }
 
         let dx = head.targetX - head.x;
         let dy = head.targetY - head.y;
         let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
-
+       
         if (distanceToMove >= distanceToTarget) {
             // Snap to target position
             head.x = head.targetX;
@@ -112,7 +114,7 @@ class Centipede {
             // Update tile position
             head.tileX += this.direction.dx;
             head.tileY += this.direction.dy;
-
+            
             // Set new target for head
             head.prevX = head.x;
             head.prevY = head.y;
@@ -158,7 +160,12 @@ class Centipede {
 
         // Update body segments
         for (let i = 1; i < this.bodySegments.length; i++) {
+                
             let segment = this.bodySegments[i];
+
+        		if (! segment.targetX || ! segment.targetY) {
+                continue;
+            }
 
             let dx = segment.targetX - segment.x;
             let dy = segment.targetY - segment.y;
@@ -336,7 +343,7 @@ class GameScene extends Phaser.Scene {
     createCentipede() {
         // Determine random length between 2 and 6
         let random = new Phaser.Math.RandomDataGenerator();
-        let length = random.between(2, 6);
+        let length = random.between(3, 6);
 
         // Find starting position on the map
         let possiblePositions = [];
@@ -509,7 +516,7 @@ class GameScene extends Phaser.Scene {
         let offsetX = (this.scale.width - MAP_WIDTH * TILE_SIZE) / 2;
         let offsetY = (this.scale.height - MAP_HEIGHT * TILE_SIZE) / 2;
 
-        this.player = this.add.rectangle(0, 0, TILE_SIZE, TILE_SIZE, 0x00ff00);
+        this.player = this.add.rectangle(1, 1, TILE_SIZE-2, TILE_SIZE-2, 0x00ff00);
         this.player.tileX = this.startPoint.x;
         this.player.tileY = this.startPoint.y;
         this.player.startX = this.player.tileX * TILE_SIZE + TILE_SIZE / 2 + offsetX;
