@@ -270,6 +270,7 @@ class BootScene extends Phaser.Scene {
 		this.scene.start('GameScene', { level: 1, lives: 3 });
 	    });
 	}
+}
 
 // Main GameScene
 class GameScene extends Phaser.Scene {
