@@ -29,7 +29,7 @@
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     
   <script type="module">
-    fetch('./manifest.json')
+    fetch('./manifest.json', {cache: "reload"})
         .then(response => response.json())
         .then(manifest => {
             window.APP_VERSION = manifest.version;
